@@ -86,8 +86,15 @@ export function boot() {
     document.getElementById('cash').textContent = fmt(w.cashSol, 3);
     document.getElementById('free').textContent = fmt(free, 3);
     document.getElementById('exp').textContent = fmt(w.exposedSol, 3);
-    document.getElementById('pnl').textContent = (w.pnlSol >= 0 ? '+' : '') + fmt(w.pnlSol, 3);
-    document.getElementById('pnl').className = w.pnlSol >= 0 ? 'up' : 'dn';
+    const pnl = w.pnlTotal ?? w.pnlSol ?? 0;
+    const pnlTxt = (pnl >= 0 ? '+' : '') + fmt(pnl, 3) + ' SOL';
+    document.getElementById('pnl').textContent = pnlTxt;
+    document.getElementById('pnl').className = pnl >= 0 ? 'up' : 'dn';
+    const chipPnl = document.getElementById('chipPnl');
+    if (chipPnl) {
+      chipPnl.textContent = '+PNL ' + (pnl >= 0 ? '+' : '') + fmt(pnl, 3);
+      chipPnl.className = pnl >= 0 ? '' : 'dn';
+    }
     document.getElementById('dd').textContent = Math.round(w.drawdown * 100) + '%';
     const modeEl = document.getElementById('mode');
     const last = document.getElementById('chipLast');

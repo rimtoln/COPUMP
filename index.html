@@ -25,6 +25,8 @@
     .top-status span#chipPump{color:#14f195;border-color:#14f19555}
     .top-status span#mode{color:#14f195}
     .top-status span#chipLast{color:#e8fff0;min-width:168px}
+    .top-status span#chipPnl{min-width:132px;color:#14f195;border-color:#14f19555}
+    .top-status span#chipPnl.dn{color:#ff5a5a;border-color:#ff5a5a55}
     .top-status span.flash{background:#14f19522}
     .top-status time{font-size:18px;color:#e8fff0}
     .panel{min-width:0;min-height:0;overflow:hidden}
@@ -113,6 +115,7 @@
         <span>COPIES <b id="ncopy">00</b></span>
         <span>BLOCKS <b id="nblock">00</b></span>
         <span id="chipLast">LAST —</span>
+        <span id="chipPnl">+PNL +0.000</span>
         <time id="clock">00:00:00</time>
       </div>
     </div>
@@ -129,8 +132,10 @@
             <div class="k">EXPOSED</div>
             <div class="v" id="exp">0</div>
             <div class="expbar"><i id="expbar"></i></div>
-            <div class="k">PNL / DRAWDOWN</div>
-            <div class="v"><span id="pnl" class="up">+0.000</span> · <span id="dd">0%</span></div>
+            <div class="k">+ PNL</div>
+            <div class="v"><span id="pnl" class="up">+0.000 SOL</span></div>
+            <div class="k">DRAWDOWN</div>
+            <div class="v" id="dd">0%</div>
             <div class="k">RULES</div>
             <div class="v" style="font-size:12px;color:#5a8a68;line-height:1.55">reserve 0.25 · 8% free<br>rug hard 72 · news halt −0.65</div>
           </div>

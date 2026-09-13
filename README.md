@@ -4,6 +4,8 @@ Paper copy desk for pump.fun. Green control room, five agents, no keys in the re
 
 cryptopsihoz / session desk.
 
+![COPUMP desk](assets/copump.png)
+
 ## What it does
 
 Watches a simulated leader tape and decides whether to **copy** a fill.

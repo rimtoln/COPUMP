@@ -24,6 +24,8 @@ export function createWorld() {
     lastUsd: 0,
     lastSym: '',
     lastSide: '',
+    upnl: 0,
+    pnlTotal: 0,
     news: [],
     incidents: [],
     agents: {
@@ -120,7 +122,7 @@ export function tickWorld(w, dt = 0.7) {
     });
   } else if (decision.copy && fill.side === 'SELL' && pos) {
     const cut = Math.min(pos.sol, decision.sizeSol || pos.sol);
-    const ret = cut * (0.7 + (tok.mc > pos.entryMc ? 0.35 : 0));
+    const ret = cut * (tok.mc / Math.max(1, pos.entryMc));
     w.cashSol += ret;
     w.exposedSol = Math.max(0, w.exposedSol - cut);
     w.pnlSol += ret - cut;
@@ -153,10 +155,18 @@ export function tickWorld(w, dt = 0.7) {
   }
   if (w.copies.length > 40) w.copies.pop();
 
-  const eq = equityOf({ cashSol: w.cashSol, exposedSol: w.exposedSol });
+  let upnl = 0;
+  for (const [sym, p] of Object.entries(w.positions)) {
+    const tk = w.tokens.find((x) => x.sym === sym);
+    if (!tk || !p.entryMc) continue;
+    upnl += p.sol * (tk.mc / p.entryMc - 1);
+  }
+  w.upnl = upnl;
+  w.pnlTotal = (w.pnlSol || 0) + upnl;
+  const eq = equityOf({ cashSol: w.cashSol, exposedSol: w.exposedSol }) + upnl;
   if (eq > w.peakEquity) w.peakEquity = eq;
   w.drawdown = w.peakEquity > 0 ? Math.max(0, 1 - eq / w.peakEquity) : 0;
-  w.agents.BANK.last = 'cash ' + fmt(w.cashSol, 2) + '  dd ' + Math.round(w.drawdown * 100) + '%';
+  w.agents.BANK.last = '+PNL ' + (w.pnlTotal >= 0 ? '+' : '') + fmt(w.pnlTotal, 3);
   w.agents.BANK.load = 0.2 + Math.min(0.7, w.exposedSol / Math.max(0.2, eq));
   return w;
 }
