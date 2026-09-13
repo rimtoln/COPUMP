@@ -39,7 +39,7 @@ export function boot() {
   }
 
   const news =
-    '  ·  PUMPLOO PAPER COPY  ·  RESERVE 0.25 SOL  ·  RUG HARD 72  ·  NEWS HALT ON LP PULL  ·  BANK SIZES 8% FREE  ·  GATE CLOSES DRAINED BAGS  ·  NO KEYS IN REPO  ·  ';
+    '  ·  COPUMP ON PUMP.FUN  ·  24 BOOKS LIVE  ·  RESERVE 0.25 SOL  ·  RUG HARD 72  ·  NEWS HALT ON LP PULL  ·  BANK SIZES 8% FREE  ·  GATE CLOSES DRAINED BAGS  ·  ';
   document.getElementById('ticker').innerHTML = '<span>' + news + '</span><span>' + news + '</span>';
 
   const w = createWorld();
@@ -64,14 +64,16 @@ export function boot() {
 
   function paintBooks() {
     books.innerHTML = '';
-    w.tokens.slice(0, 12).forEach((tk) => {
+    w.tokens.forEach((tk) => {
       const pos = w.positions[tk.sym];
       const el = document.createElement('div');
       el.className = 'book' + (tk.rug.action === 'BLOCK' ? ' bad' : tk.rug.action === 'REDUCE' ? ' mid' : '');
+      const pct = ((tk.chg || 0) * 100);
+      const chg = (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%';
       el.innerHTML =
-        '<em>' + tk.sym + '</em>' +
-        '<strong>$' + Math.round(tk.mc).toLocaleString('en-US') + '</strong>' +
-        '<span class="r ' + tk.rug.action.toLowerCase() + '">RUG ' + tk.rug.score + ' ' + tk.rug.action + '</span>' +
+        '<div class="pt">' + tk.sym + ' <i>pump.fun</i></div>' +
+        '<strong class="' + (pct < 0 ? 'dn' : 'up') + '">$' + Math.round(tk.mc).toLocaleString('en-US') + '</strong>' +
+        '<span class="r ' + tk.rug.action.toLowerCase() + '">RUG ' + tk.rug.score + ' ' + tk.rug.action + ' · ' + chg + '</span>' +
         '<small>' + (pos ? 'held ' + fmt(pos.sol, 2) + ' SOL' : 'flat') + ' · curve ' + Math.round(tk.curve * 100) + '%</small>';
       books.appendChild(el);
     });
@@ -87,9 +89,19 @@ export function boot() {
     document.getElementById('pnl').textContent = (w.pnlSol >= 0 ? '+' : '') + fmt(w.pnlSol, 3);
     document.getElementById('pnl').className = w.pnlSol >= 0 ? 'up' : 'dn';
     document.getElementById('dd').textContent = Math.round(w.drawdown * 100) + '%';
-    document.getElementById('mode').textContent = w.mode.toUpperCase();
-    document.getElementById('ncopy').textContent = String(w.copies.length).padStart(2, '0');
-    document.getElementById('nblock').textContent = String(w.blocked.length).padStart(2, '0');
+    const modeEl = document.getElementById('mode');
+    const last = document.getElementById('chipLast');
+    const pump = document.getElementById('chipPump');
+    modeEl.textContent = w.lastSide ? w.lastSide : w.mode.toUpperCase();
+    modeEl.className = w.lastSide === 'BUY' ? 'flash' : '';
+    document.getElementById('ncopy').textContent = String(w.copyCount || 0).padStart(2, '0');
+    document.getElementById('nblock').textContent = String(w.blockCount || 0).padStart(2, '0');
+    if (w.lastSym) {
+      last.textContent = w.lastSide
+        ? ('LAST ' + w.lastSide + ' ' + w.lastSym + ' ' + money(w.lastUsd || 0))
+        : ('SKIP ' + w.lastSym);
+    }
+    pump.textContent = 'PUMP.FUN · ' + (w.lastSym || 'TAPE');
     const fill = Math.min(100, (w.exposedSol / Math.max(0.01, eq)) * 100);
     document.getElementById('expbar').style.width = fill + '%';
   }
@@ -129,17 +141,58 @@ export function boot() {
   }
 
   function paintBond() {
-    bx.clearRect(0, 0, bond.width, bond.height);
-    bx.strokeStyle = '#14f195';
-    bx.lineWidth = 1.6;
+    const tok = w.tokens.find((x) => x.sym === (w.lastSym || w.tokens[0].sym)) || w.tokens[0];
+    const pct = tok.curve;
+    const w0 = bond.width, h0 = bond.height;
+    bx.clearRect(0, 0, w0, h0);
+    bx.fillStyle = '#06140c';
+    bx.fillRect(0, 0, w0, h0);
+    bx.strokeStyle = '#1a4a28';
+    bx.lineWidth = 1;
+    for (let g = 1; g < 4; g++) {
+      const y = (h0 / 4) * g;
+      bx.beginPath();
+      bx.moveTo(0, y);
+      bx.lineTo(w0, y);
+      bx.stroke();
+    }
     bx.beginPath();
-    for (let i = 0; i < 48; i++) {
-      const x = (i / 47) * bond.width;
-      const y = bond.height - (0.12 + 0.78 * Math.pow(i / 47, 1.6)) * bond.height * (0.85 + 0.08 * Math.sin(w.t + i / 8));
+    for (let i = 0; i <= 64; i++) {
+      const u = i / 64;
+      const x = u * w0;
+      const y = h0 - (0.08 + 0.84 * Math.pow(u, 1.55)) * h0;
       if (i === 0) bx.moveTo(x, y);
       else bx.lineTo(x, y);
     }
+    bx.strokeStyle = '#14f195';
+    bx.lineWidth = 2;
     bx.stroke();
+    const mx = pct * w0;
+    const my = h0 - (0.08 + 0.84 * Math.pow(pct, 1.55)) * h0;
+    bx.fillStyle = 'rgba(20,241,149,0.14)';
+    bx.beginPath();
+    bx.moveTo(0, h0);
+    for (let i = 0; i <= Math.floor(pct * 64); i++) {
+      const u = i / 64;
+      bx.lineTo(u * w0, h0 - (0.08 + 0.84 * Math.pow(u, 1.55)) * h0);
+    }
+    bx.lineTo(mx, h0);
+    bx.closePath();
+    bx.fill();
+    bx.strokeStyle = '#e8c040';
+    bx.beginPath();
+    bx.moveTo(mx, 8);
+    bx.lineTo(mx, h0);
+    bx.stroke();
+    bx.fillStyle = '#14f195';
+    bx.beginPath();
+    bx.arc(mx, my, 4, 0, Math.PI * 2);
+    bx.fill();
+    bx.fillStyle = '#e8fff0';
+    bx.font = '12px Share Tech Mono, Consolas, monospace';
+    bx.fillText(tok.sym + '  ' + Math.round(pct * 100) + '% bonded on pump.fun  ·  last fill ' + money(w.lastUsd || 0), 10, 18);
+    const hint = document.getElementById('bondHint');
+    if (hint) hint.textContent = tok.sym + ' walked ' + Math.round(pct * 100) + '% of the pump.fun curve · this is not a price chart';
   }
 
   let lastCopy = 0, lastBlock = 0, lastNews = 0, lastInc = 0;
@@ -171,6 +224,12 @@ export function boot() {
     paintAgents();
     paintBond();
     candle();
+    const barBox = document.getElementById('bars');
+    if (barBox) {
+      [...barBox.children].forEach((b, i) => {
+        b.style.height = (22 + ((w.copyCount * 13 + i * 17 + Math.floor(w.t * 10)) % 78)) + '%';
+      });
+    }
     const d = new Date();
     clk.textContent = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ':' + String(d.getSeconds()).padStart(2, '0');
     document.getElementById('focusV').textContent = (w.copies[0] && w.copies[0].sym) || w.tokens[0].sym;

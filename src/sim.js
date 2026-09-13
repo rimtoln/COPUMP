@@ -9,14 +9,42 @@ export const SYMS = [
   'CAT', 'DOG', 'ORB', 'RAY', 'APE', 'MOON', 'WIF', 'BONK',
   'PEPE', 'SLERF', 'POP', 'MEW', 'LOCK', 'KEY', 'DUST', 'GLINT',
 ];
+const ROOTS = [
+  'FROG', 'PEPE', 'WIF', 'BONK', 'CAT', 'DOG', 'MOON', 'APE', 'GOAT', 'PIG',
+  'RAT', 'OWL', 'FOX', 'BEE', 'ANT', 'COW', 'ELK', 'BAT', 'EEL', 'KOI',
+  'CRAB', 'TOAD', 'BEAN', 'MILK', 'DRIP', 'FOMO', 'JEET', 'COOK', 'ZAP',
+  'RIB', 'MOSS', 'YAP', 'BLIP', 'HUSK', 'MOTH', 'SEED', 'HAZE', 'WISP',
+  'NODE', 'ECHO', 'SPAR', 'GIGA', 'TURBO', 'CHAD', 'NPC', 'WAGMI', 'NGMI',
+];
+const TAIL = ['X', 'INU', 'OS', 'AI', 'SOL', 'FUN', 'MAX', 'CEO', 'DAO', '69'];
 
-export function seedToken(i, t = 0) {
-  const h = hash(i * 9.1 + 2);
+export function mintName(t, i, used) {
+  const take = new Set(used || []);
+  for (let k = 0; k < 24; k++) {
+    const mode = hash(t * 11 + i * 3 + k);
+    let s;
+    if (mode < 0.34) s = pick(ROOTS, t * 4 + i + k);
+    else if (mode < 0.7) s = (pick(ROOTS, t * 5 + k) + pick(TAIL, t * 7 + i + k)).slice(0, 8);
+    else {
+      const C = 'BCDFGHKLMNPRSTVWZ';
+      const V = 'AEIOU';
+      s = C[Math.floor(hash(t + k) * C.length)] + V[Math.floor(hash(t + k + 1) * V.length)] +
+        C[Math.floor(hash(t + k + 2) * C.length)] + V[Math.floor(hash(t + k + 3) * V.length)];
+    }
+    if (!take.has(s)) return s;
+  }
+  return ('M' + Math.floor(hash(t + i) * 900 + 100));
+}
+
+export function seedToken(i, t = 0, used) {
+  const h = hash(i * 9.1 + 2 + t);
   const tok = {
-    sym: SYMS[i % SYMS.length],
-    mint: 'pmp' + String(1000 + i),
-    mc: 2000 + h * 80000,
-    curve: 0.08 + hash(i * 3) * 0.7,
+    sym: mintName(t + 1, i, used),
+    mint: 'pmp' + String(1000 + Math.floor(hash(t + i) * 9000)),
+    mc: 900 + h * 92000,
+    prevMc: 0,
+    chg: 0,
+    curve: 0.08 + hash(i * 3 + t) * 0.7,
     mintAuthority: hash(i * 4.2) > 0.55,
     freezeAuthority: hash(i * 5.1) > 0.72,
     lpUnlocked: hash(i * 6.3) > 0.6,
@@ -34,13 +62,24 @@ export function seedToken(i, t = 0) {
 }
 
 export function driftToken(tok, t, i) {
-  tok.mc = Math.max(400, tok.mc * (1 + (hash(t * 3 + i) - 0.48) * 0.04));
-  tok.curve = Math.max(0.02, Math.min(0.99, tok.curve + (hash(t + i) - 0.45) * 0.01));
+  tok.prevMc = tok.mc;
+  const shock = hash(t * 3.7 + i * 1.9) > 0.88 ? 0.38 : 0.16;
+  const dir = hash(t * 5.2 + i) - 0.49;
+  tok.mc = Math.max(280, tok.mc * (1 + dir * shock));
+  tok.chg = tok.prevMc ? (tok.mc - tok.prevMc) / tok.prevMc : 0;
+  tok.curve = Math.max(0.02, Math.min(0.99, tok.curve + (hash(t + i) - 0.42) * 0.035));
   tok.ageSec += 0.7;
   if (hash(t * 17 + i) > 0.997) tok.lpPulled = true;
   if (hash(t * 19 + i) > 0.993) tok.creatorSoldPct = Math.min(100, tok.creatorSoldPct + 12);
   tok.rug = scoreRug(tok);
   return tok;
+}
+
+export function rotateSlot(tokens, t, slot) {
+  const used = new Set(tokens.map((x) => x.sym));
+  const neu = seedToken(slot, t + 40, used);
+  tokens[slot] = neu;
+  return neu;
 }
 
 export function leaderFill(t, i, tok) {

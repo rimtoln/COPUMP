@@ -1,4 +1,4 @@
-# PUMPLOO
+# COPUMP
 
 Paper copy desk for pump.fun. Green control room, five agents, no keys in the repo.
 

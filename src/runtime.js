@@ -1,10 +1,11 @@
 import { decideCopy } from './copy.js';
 import { DEFAULT_RULES, equityOf } from './balance.js';
-import { seedToken, driftToken, leaderFill, rollNews, rollIncident, SYMS } from './sim.js';
-import { fmt } from './hash.js';
+import { seedToken, driftToken, rotateSlot, leaderFill, rollNews, rollIncident } from './sim.js';
+import { fmt, hash } from './hash.js';
 
 export function createWorld() {
-  const tokens = SYMS.map((_, i) => seedToken(i, 0));
+  const tokens = [];
+  for (let i = 0; i < 24; i++) tokens.push(seedToken(i, i * 3, tokens.map((x) => x.sym)));
   return {
     t: 0,
     mode: 'paper',
@@ -18,6 +19,11 @@ export function createWorld() {
     positions: {},
     copies: [],
     blocked: [],
+    copyCount: 0,
+    blockCount: 0,
+    lastUsd: 0,
+    lastSym: '',
+    lastSide: '',
     news: [],
     incidents: [],
     agents: {
@@ -32,8 +38,19 @@ export function createWorld() {
 
 export function tickWorld(w, dt = 0.7) {
   w.t += dt;
+  w.tokens.forEach((tok, i) => driftToken(tok, w.t, i));
+  const slot = Math.floor(hash(w.t * 9.1) * w.tokens.length);
+  const old = w.tokens[slot].sym;
+  if (w.positions[old]) {
+    w.cashSol += w.positions[old].sol;
+    w.exposedSol = Math.max(0, w.exposedSol - w.positions[old].sol);
+    delete w.positions[old];
+  }
+  const neu = rotateSlot(w.tokens, w.t, slot);
+  w.news.unshift({ t: w.t, text: 'new mint ' + neu.sym + ' listed on pump.fun', tone: 'good', score: 0.2, hits: ['listed'], pause: false, sym: neu.sym });
+  if (w.news.length > 40) w.news.pop();
   const i = Math.floor(w.t * 3) % w.tokens.length;
-  const tok = driftToken(w.tokens[i], w.t, i);
+  const tok = w.tokens[i];
   const news = rollNews(w.t, tok);
   w.news.unshift({ t: w.t, ...news, sym: tok.sym });
   if (w.news.length > 40) w.news.pop();
@@ -87,6 +104,10 @@ export function tickWorld(w, dt = 0.7) {
     p.sol += decision.sizeSol;
     p.entryMc = tok.mc;
     w.positions[tok.sym] = p;
+    w.copyCount += 1;
+    w.lastUsd = Math.round(decision.sizeSol * (130 + (tok.mc % 40)));
+    w.lastSym = tok.sym;
+    w.lastSide = 'BUY';
     w.copies.unshift({
       t: w.t,
       side: 'BUY',
@@ -94,7 +115,7 @@ export function tickWorld(w, dt = 0.7) {
       leader: fill.leader,
       leadSol: fill.sol,
       sizeSol: decision.sizeSol,
-      usd: Math.round(decision.sizeSol * (130 + (tok.mc % 40))),
+      usd: w.lastUsd,
       reason: decision.reason,
     });
   } else if (decision.copy && fill.side === 'SELL' && pos) {
@@ -105,6 +126,10 @@ export function tickWorld(w, dt = 0.7) {
     w.pnlSol += ret - cut;
     pos.sol -= cut;
     if (pos.sol < 0.01) delete w.positions[tok.sym];
+    w.copyCount += 1;
+    w.lastUsd = Math.round(cut * (130 + (tok.mc % 40)));
+    w.lastSym = tok.sym;
+    w.lastSide = 'SELL';
     w.copies.unshift({
       t: w.t,
       side: 'SELL',
@@ -112,10 +137,12 @@ export function tickWorld(w, dt = 0.7) {
       leader: fill.leader,
       leadSol: fill.sol,
       sizeSol: cut,
-      usd: Math.round(cut * (130 + (tok.mc % 40))),
+      usd: w.lastUsd,
       reason: decision.reason,
     });
   } else if (!decision.copy) {
+    w.blockCount += 1;
+    w.lastSym = tok.sym;
     w.blocked.unshift({
       t: w.t,
       sym: tok.sym,
