@@ -1,0 +1,11 @@
+{
+  "name": "pumploo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Paper copy desk for pump.fun: balance-sized copies, rug / incident / news agents.",
+  "scripts": {
+    "start": "npx --yes serve . -l 8788",
+    "test": "node --test test/*.test.js"
+  }
+}

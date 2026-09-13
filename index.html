@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PUMPLOO — copy desk</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#020604;color:#b8ffd4}
+    .viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#020604}
+    .stage{flex:none;width:1920px;height:1080px;transform-origin:center center}
+    .canvas{width:1920px;height:1080px;padding:16px;display:flex;flex-direction:column;gap:10px;overflow:hidden;
+      background:radial-gradient(circle at 48% 38%,#102214 0,#07140c 46%,#020604 100%);
+      font-family:"Share Tech Mono",Consolas,monospace;letter-spacing:.04em;position:relative}
+    .canvas:after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.08;
+      background:repeating-linear-gradient(0deg,transparent 0 3px,#14f195 4px)}
+    .topbar,.panel,.ticker{border:2px solid #1a4a28;background:#07140c}
+    .topbar{height:60px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 20px}
+    .brand,.top-status{display:flex;align-items:center;gap:18px}
+    .xmark{display:grid;place-items:center;width:30px;height:30px;border:1px solid #1a4a28;color:#14f195;font-weight:900}
+    .brand strong{font-size:22px;color:#e8fff0}
+    .brand b{font-size:16px;color:#14f195}
+    .top-status{font-size:13px;color:#5a8a68}
+    .top-status span{padding:7px 11px;border:1px solid #1a4a28;background:#0a1a10}
+    .top-status span:first-child{color:#14f195}
+    .top-status time{font-size:18px;color:#e8fff0}
+    .panel{min-width:0;min-height:0;overflow:hidden}
+    .panel>header{height:29px;display:flex;align-items:center;justify-content:space-between;padding:0 10px;
+      border-bottom:1px solid #1a4a28;background:#0a1a10;color:#b8ffd4;font-size:11px;font-weight:700}
+    .panel>header b{color:#14f195;font-size:10px}
+    .panel-body{height:calc(100% - 29px);min-height:0;padding:8px}
+    .h-main{height:803px;display:grid;grid-template-columns:minmax(0,1fr) 450px;gap:10px}
+    .side-column{display:grid;grid-template-rows:245px 285px 253px;gap:10px;min-height:0}
+    .h-bottom{height:117px;display:grid;grid-template-columns:1.25fr 1fr .72fr;gap:10px}
+    .h-bottom .panel-body{padding:4px 8px}
+    .scene-frame{position:relative;min-width:0;min-height:0;border:3px solid #1a4a28;background:#030806;overflow:hidden;display:grid;grid-template-rows:28px 1fr 132px}
+    .scene-label{height:28px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;
+      background:#06140cd9;border-bottom:1px solid #1a4a28;color:#b8ffd4;font-size:11px}
+    .scene-label b{color:#ff5a5a}
+    .floor{display:grid;grid-template-columns:1fr 280px;min-height:0}
+    .books{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:min-content;gap:8px;padding:10px;overflow:hidden}
+    .book{border:1px solid #1a4a28;background:#0a1a10;padding:8px 10px;min-height:86px}
+    .book.bad{outline:1px solid #ff5a5a}
+    .book.mid{outline:1px solid #e8c040}
+    .book em{display:block;font-size:12px;color:#e8fff0;font-style:normal}
+    .book strong{display:block;font-size:20px;color:#14f195;margin:4px 0 2px}
+    .book .r{display:block;font-size:10px}
+    .book .allow{color:#14f195}.book .reduce{color:#e8c040}.book .block{color:#ff5a5a}
+    .book small{display:block;margin-top:6px;color:#5a8a68;font-size:10px}
+    .sidebal{border-left:1px solid #1a4a28;padding:12px 14px}
+    .sidebal .k{color:#5a8a68;font-size:10px;margin-top:8px}
+    .sidebal .v{font-size:22px;color:#e8fff0}
+    .sidebal .up{color:#14f195}.sidebal .dn{color:#ff5a5a}
+    .expbar{height:4px;background:#0c2014;margin-top:8px}
+    .expbar i{display:block;height:100%;background:#14f195;width:10%}
+    .bond-wrap{border-top:1px solid #1a4a28;padding:6px 10px}
+    .bond-wrap canvas{width:100%;height:96px;display:block}
+    .agent-stack{display:flex;flex-direction:column;gap:8px}
+    .agent{height:32px;display:grid;grid-template-columns:10px 82px 1fr;grid-template-rows:16px 8px;align-items:center;
+      gap:0 8px;padding:2px 6px;border:1px solid #164628;background:#0a1a10}
+    .agent i{width:7px;height:7px;grid-row:1/3;background:#14f195;animation:blink .48s ease-in-out infinite alternate}
+    .agent span{font-size:11px;color:#e8fff0;font-weight:700}
+    .agent small{justify-self:end;font-size:8px;color:#5a8a68;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .load{grid-column:2/4;height:4px;background:#0c2014;overflow:hidden}
+    .load em{display:block;height:100%;width:100%;background:#14f195;transform-origin:left}
+    .log-window{height:100%;overflow:hidden;color:#6a9a78;font-size:10px;line-height:1.7}
+    .log-window p{margin:0;white-space:nowrap;height:17px;overflow:hidden}
+    .log-window time{color:#2a5a38;margin-right:9px}
+    .log-window b{display:inline-block;width:54px;color:#14f195}
+    .log-window b.up{color:#14f195}.log-window b.dn{color:#ff5a5a}
+    .pipeline-board{height:100%;position:relative;overflow:hidden;padding-top:16px;color:#5a8a68;font-size:7px}
+    .pipe-head{position:absolute;inset:0 18px auto 48px;height:14px;display:grid;grid-template-columns:repeat(4,1fr);color:#b8ffd4;font-size:6px;letter-spacing:.08em}
+    .pipe-head span{text-align:center;border-bottom:1px solid #1a4a28}
+    .pipe-lane{height:18%;min-height:13px;display:grid;grid-template-columns:44px 1fr 20px;align-items:center;border-bottom:1px solid #0c2014}
+    .pipe-lane>b{font-size:7px;color:#b8ffd4;padding-left:2px}
+    .pipe-lane>strong{font-size:8px;color:#14f195;text-align:right}
+    .pipe-track{height:74%;position:relative;border-left:1px solid #1a4a28;border-right:1px solid #1a4a28;
+      background:linear-gradient(90deg,#14f19522,#7dffc418,#e8c04014,#ff5a5a14)}
+    .job{position:absolute;z-index:2;top:1px;left:-1px;width:50px;height:10px;background:#07140c;border:1px solid #14f195;color:#14f195;animation:jobrun 1.55s linear infinite}
+    .job em{display:block;font-style:normal;font-size:6px;line-height:8px;text-align:center}
+    .job.j2{border-color:#e8c040;color:#e8c040;animation-delay:-.75s}
+    .job.j3{border-color:#ff5a5a;color:#ff5a5a;animation-delay:-1.1s}
+    .job.j4{border-color:#7dffc4;color:#7dffc4;animation-delay:-.55s}
+    .pipe-scan{position:absolute;top:14px;bottom:0;width:1px;background:#14f195;animation:pipescan 1.8s linear infinite}
+    .bar-cluster{height:100%;display:flex;align-items:flex-end;gap:7px;padding:3px}
+    .bar-cluster i{flex:1;min-width:4px;background:linear-gradient(#14f195,#0a8a55);animation:bars .8s ease-in-out infinite alternate}
+    .ticker{height:38px;flex:none;overflow:hidden;color:#b8ffd4;font-size:12px;line-height:34px;white-space:nowrap;position:relative}
+    .ticker .ticker-run{display:flex;width:max-content;animation:newsticker 7.5s linear infinite}
+    .ticker-run span{display:block;flex:none;padding-right:42px}
+    canvas.chart{width:100%;height:78px;display:block}
+    @keyframes blink{to{opacity:.25}}
+    @keyframes jobrun{0%{transform:translateX(-52px)}100%{transform:translateX(390px)}}
+    @keyframes pipescan{0%{left:47px}100%{left:calc(100% - 20px)}}
+    @keyframes bars{to{transform:scaleY(.45)}}
+    @keyframes newsticker{to{transform:translateX(-50%)}}
+  </style>
+</head>
+<body>
+<div class="viewport"><div class="stage" id="stage">
+  <div class="canvas">
+    <div class="topbar">
+      <div class="brand"><i class="xmark">×</i><strong>PUMPLOO</strong><b>CRYPTOPSIHOZ / COPY DESK</b></div>
+      <div class="top-status">
+        <span id="mode">PAPER</span>
+        <span>COPIES <b id="ncopy">00</b></span>
+        <span>BLOCKS <b id="nblock">00</b></span>
+        <time id="clock">00:00:00</time>
+      </div>
+    </div>
+    <div class="h-main">
+      <div class="scene-frame">
+        <div class="scene-label"><span>CAM 01 · COPY FLOOR / PUMP.FUN TAPE</span><b>LOOKING AT <span id="focusV">FROG</span></b></div>
+        <div class="floor">
+          <div class="books" id="books"></div>
+          <div class="sidebal">
+            <div class="k">EQUITY</div>
+            <div class="v" id="eq">0.000 SOL</div>
+            <div class="k">CASH / FREE</div>
+            <div class="v"><span id="cash">0</span> / <span id="free">0</span></div>
+            <div class="k">EXPOSED</div>
+            <div class="v" id="exp">0</div>
+            <div class="expbar"><i id="expbar"></i></div>
+            <div class="k">PNL / DRAWDOWN</div>
+            <div class="v"><span id="pnl" class="up">+0.000</span> · <span id="dd">0%</span></div>
+            <div class="k">RULES</div>
+            <div class="v" style="font-size:12px;color:#5a8a68;line-height:1.55">reserve 0.25 · 8% free<br>rug hard 72 · news halt −0.65</div>
+          </div>
+        </div>
+        <div class="bond-wrap">
+          <canvas id="bond" width="1400" height="96"></canvas>
+        </div>
+      </div>
+      <div class="side-column">
+        <div class="panel">
+          <header>AGENT ARRAY <b>5 UP</b></header>
+          <div class="panel-body agent-stack" id="agents"></div>
+        </div>
+        <div class="panel">
+          <header>CHAT 01 <b>COPY / BLOCK</b></header>
+          <div class="panel-body log-window" id="log1"></div>
+        </div>
+        <div class="panel">
+          <header>CHAT 02 <b>RUG / NEWS / INCIDENT</b></header>
+          <div class="panel-body log-window" id="log2"></div>
+        </div>
+      </div>
+    </div>
+    <div class="h-bottom">
+      <div class="panel">
+        <header>SOL CANDLES <b>DESK MARK</b></header>
+        <div class="panel-body"><canvas class="chart" id="candles" width="620" height="78"></canvas></div>
+      </div>
+      <div class="panel">
+        <header>PIPELINE <b>COPY → BANK → RUG → GATE</b></header>
+        <div class="panel-body">
+          <div class="pipeline-board">
+            <div class="pipe-head"><span>COPY</span><span>BANK</span><span>RUG</span><span>GATE</span></div>
+            <div class="pipe-scan"></div>
+            <div class="pipe-lane"><b>COPY</b><div class="pipe-track"><i class="job j1"><em>FILL</em></i></div><strong>04</strong></div>
+            <div class="pipe-lane"><b>BANK</b><div class="pipe-track"><i class="job j4"><em>SIZE</em></i></div><strong>03</strong></div>
+            <div class="pipe-lane"><b>RUG</b><div class="pipe-track"><i class="job j3"><em>SCORE</em></i></div><strong>02</strong></div>
+            <div class="pipe-lane"><b>NEWS</b><div class="pipe-track"><i class="job j2"><em>TAPE</em></i></div><strong>05</strong></div>
+            <div class="pipe-lane"><b>GATE</b><div class="pipe-track"><i class="job"><em>HALT</em></i></div><strong>01</strong></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <header>VOLUME <b>FILLS</b></header>
+        <div class="panel-body"><div class="bar-cluster" id="bars"></div></div>
+      </div>
+    </div>
+    <div class="ticker"><div class="ticker-run" id="ticker"></div></div>
+  </div>
+</div></div>
+<script type="module">
+  import { boot } from './src/terminal.js';
+  boot();
+</script>
+</body>
+</html>
